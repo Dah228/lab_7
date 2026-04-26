@@ -1,28 +1,27 @@
 package server.collection;
 
-
 import common.Vehicle;
 import common.VehicleType;
+import server.database.VehicleDao;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 public class VehicleManager {
     private final VehicleCollection collection;
+    private final VehicleDao dao;  // ← НОВОЕ
 
-    // Конструктор с внедрением зависимости
-    public VehicleManager(VehicleCollection collection) {
+    // Обновлённый конструктор
+    public VehicleManager(VehicleCollection collection, VehicleDao dao) {
         this.collection = collection;
+        this.dao = dao;
     }
 
-    // Логика вывода всей коллекции
+    // === ЧТЕНИЕ: только из памяти ===
     public ArrayList<Vehicle> showCollection() {
         return collection.getVehicles();
     }
 
-
-    // Логика информации
     public HashMap<String, String> getInfo() {
         HashMap<String, String> paramList = new HashMap<>();
         paramList.put("Размер коллекции : ", String.valueOf(collection.size()));
@@ -33,86 +32,32 @@ public class VehicleManager {
             summa += v.getEnginePower();
         }
         paramList.put("Общая мощность двигателей : ", String.valueOf(summa));
-
         if (!collection.isEmpty()) {
             paramList.put("Средняя мощность двигателя : ", String.valueOf(summa / collection.size()));
         } else {
             paramList.put("Средняя мощность двигателя", "0 (коллекция пуста)");
         }
-
         return paramList;
     }
 
-    // Логика фильтрации
     public ArrayList<Vehicle> filterByEnginePower(Float power) {
-        ArrayList<Vehicle> filteredByEngine = new ArrayList<>();
+        ArrayList<Vehicle> filtered = new ArrayList<>();
         for (Vehicle v : collection.getVehicles()) {
             if (v.getEnginePower() >= power) {
-                filteredByEngine.add(v);
+                filtered.add(v);
             }
         }
-        return filteredByEngine;
+        return filtered;
     }
-
-    // Логика очистки
-    public void clearCollection() {
-        collection.clear();
-    }
-
 
     public ArrayList<Vehicle> filterLessThanType(VehicleType type) {
-        ArrayList<Vehicle> filteredByEngine = new ArrayList<>();
+        ArrayList<Vehicle> filtered = new ArrayList<>();
         for (Vehicle v : collection.getVehicles()) {
-            if (v.getType().compareTo(type) < 0) {
-                filteredByEngine.add(v);
+            if (v.getType() != null && v.getType().compareTo(type) < 0) {
+                filtered.add(v);
             }
         }
-        return filteredByEngine;
-    }
-
-    public boolean updateElementByID(long id, Vehicle vehicle) {
-        if (collection.getVehicleByID(id) != null) {
-            vehicle.setId(id);
-            collection.replaceVehicle(id, vehicle);
-            return true;
-        }
-        return false;  // ← не найдено
-    }
-
-    public boolean rmByID(long id) {
-        List<Long> ids = collection.getAllID();
-        for (Long i : ids) {
-            if (i.equals(id)) {
-                collection.rmEl(collection.getVehicleByID(id));
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void addElement(Vehicle vehicle) {
-        collection.add(vehicle);
-    }
-
-    public boolean addIfMax(Vehicle veh) {
-        if (collection.getVehicles().stream().allMatch(v ->
-                v.getDistanceTravelled() < veh.getDistanceTravelled())) {
-            collection.add(veh);
-            return true;
-        }
-        return false;
-    }
-
-    // ← groupByParam возвращает результат, а не печатает
-    public Map<Comparable<?>, Long> groupByParam(List<String> args) {
-        ValidateParams validator = new ValidateParams(args);
-        GroupingField field = validator.getGroupingField();
-
-        return collection.getVehicles().stream()
-                .collect(Collectors.groupingBy(
-                        field.extractor(),
-                        Collectors.counting()
-                ));
+        return filtered;
     }
 
     public ArrayList<Vehicle> sortByID() {
@@ -133,5 +78,68 @@ public class VehicleManager {
         return vehicles;
     }
 
+    public Map<Comparable<?>, Long> groupByParam(List<String> args) {
+        ValidateParams validator = new ValidateParams(args);
+        GroupingField field = validator.getGroupingField();
+        return collection.getVehicles().stream()
+                .collect(Collectors.groupingBy(field.extractor(), Collectors.counting()));
+    }
 
+    // === ЗАПИСЬ: сначала БД, потом память ===
+
+    public boolean addElement(Vehicle vehicle) {
+        // 1. Сохраняем в БД (там генерируется ID через sequence)
+        if (dao.insert(vehicle)) {
+            // 2. Только при успехе добавляем в память
+            collection.add(vehicle);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean addElementManually(Vehicle vehicle) {
+        // ← ТОЛЬКО для начальной загрузки из БД при старте сервера
+        // Не вызывает dao.insert(), сразу добавляет в память
+        collection.add(vehicle);
+        return true;
+    }
+
+    public boolean updateElementByID(long id, Vehicle vehicle, String ownerLogin) {
+        // 1. Обновляем в БД с проверкой владельца
+        if (dao.update(id, vehicle, ownerLogin)) {
+            // 2. Синхронизируем память
+            collection.replaceVehicle(id, vehicle);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean rmByID(long id, String ownerLogin) {
+        // 1. Удаляем из БД с проверкой владельца
+        if (dao.delete(id, ownerLogin)) {
+            // 2. Удаляем из памяти
+            Vehicle v = collection.getVehicleByID(id);
+            if (v != null) collection.rmEl(v);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean addIfMax(Vehicle veh) {
+        Optional<Vehicle> max = collection.getVehicles().stream()
+                .max(Comparator.comparingDouble(Vehicle::getDistanceTravelled));
+        if (max.isEmpty() || veh.getDistanceTravelled() > max.get().getDistanceTravelled()) {
+            return addElement(veh); // ← используем метод с БД
+        }
+        return false;
+    }
+
+    public void clearCollection(String ownerLogin) {
+        // 1. Удаляем из БД только объекты владельца
+        dao.clearAll(ownerLogin);
+
+
+        // 2. Синхронизируем память
+        collection.removeIf(v -> ownerLogin.equals(v.getOwnerLogin()));
+    }
 }

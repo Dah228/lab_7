@@ -1,48 +1,45 @@
 package server;
 
+import common.Vehicle;
 import server.service.*;
+
+import java.util.ArrayList;
 
 public class ServerApp {
     public static void main(String[] args) {
         System.out.println("Инициализация сервера...");
 
-        if (args.length < 1) {
-            System.err.println("Не указан путь к XML-файлу");
-            return;
-        }
+        String xmlFilePath = (args.length > 0) ? args[0] : "dummy";
 
-        // 1. Создание контекста со всеми компонентами
-        ServerContext context = new ServerContext(7301, args[0]);
-
+        // 1. Создание контекста (инициализирует БД-компоненты)
+        ServerContext context = new ServerContext(7301, xmlFilePath);
         if (!context.startNetwork()) {
             System.err.println("Не удалось запустить сервер");
             return;
         }
 
-        System.out.println("Сервер запущен. Команды: " +
+        System.out.println("Сервер запущен. Команд: " +
                 context.getCommandsList().getCommandList().size());
-        System.out.println("Введите команду в консоль сервера или 'help' для списка.");
 
-        // 2. Загрузка данных из XML
-        XmlDataLoader.loadAndRegister(context.getXmlFilePath(), context.getInvoker());
+        // 2. Загрузка данных из БД в память при старте
+        System.out.println("Загрузка коллекции из базы данных...");
+        ArrayList<Vehicle> dbVehicles = (ArrayList<Vehicle>) new server.database.VehicleDao().loadAll();
+        for (Vehicle v : dbVehicles) {
+            // addElementManually — только в память, без повторной вставки в БД
+            context.getVehicleManager().addElementManually(v);
+        }
+        System.out.println("Загружено объектов: " + dbVehicles.size());
 
         // 3. Подготовка обработчиков
         NetworkRequestHandler requestHandler = new NetworkRequestHandler(
                 context.getInvoker(),
                 context.getNetworkService()
         );
-        ConsoleCommandHandler consoleHandler = new ConsoleCommandHandler(
-                context.getInvoker(),
-                context
-        );
+
         ServerLoop serverLoop = new ServerLoop(context, requestHandler);
 
-        // 4. Запуск потока консоли
-        Thread consoleThread = new Thread(consoleHandler);
-        consoleThread.setDaemon(true);
-        consoleThread.start();
-
-        // 5. Запуск главного цикла (в текущем потоке)
+        // 4. Запуск главного цикла
+        System.out.println("Сервер готов к работе. Нажмите Ctrl+C для остановки.");
         serverLoop.run();
     }
 }

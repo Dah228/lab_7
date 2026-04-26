@@ -17,11 +17,22 @@ public class Executor {
     private final NetworkService network;
     private final AllCommands allCommands;
     private final DataValidator validator;
+    // В начало класса Executor:
+    private String currentUserLogin;
+    private String currentUserPassword;
+
+
+
 
     public Executor(NetworkService network, AllCommands allCommands, DataValidator validator) {
         this.network = network;
         this.allCommands = allCommands;
         this.validator = validator;
+    }
+    //установка после авторизации:
+    public void setAuthCredentials(String login, String password) {
+        this.currentUserLogin = login;
+        this.currentUserPassword = password;
     }
 
     public void run(InputStream inputStream) {
@@ -105,7 +116,15 @@ public class Executor {
                     }
                 }
 
-                CommandRequest request = new CommandRequest(commandName, args, vehicle, isInteractive);
+
+                CommandRequest request = new CommandRequest(
+                        commandName,
+                        args,
+                        vehicle,
+                        isInteractive,
+                        this.currentUserLogin,
+                        this.currentUserPassword
+                );
 
                 if (!network.send(request)) {
                     System.out.println("Ошибка отправки запроса");

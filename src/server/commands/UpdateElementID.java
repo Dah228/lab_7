@@ -5,31 +5,37 @@ import common.ReturnCode;
 import server.collection.VehicleManager;
 
 public class UpdateElementID implements Command {
-    VehicleManager vehicleManager;
+    private final VehicleManager vehicleManager;
     private final CommandType type = CommandType.WITHARGSMODEL;
-
-
 
     public UpdateElementID(VehicleManager vehicleManager) {
         this.vehicleManager = vehicleManager;
     }
 
     @Override
-    public ReturnCode execute(CommandParams params) throws IllegalArgumentException {
-        if (params.args().size() != 2){
+    public ReturnCode execute(CommandParams params) {
+        if (params.args().size() != 2) return ReturnCode.FAILED;
+        try {
+            long id = Long.parseLong(params.args().get(1));
+            // Устанавливаем ID и владельца для обновляемого объекта
+            params.vehicle().setId(id);
+            params.vehicle().setOwnerLogin(params.login());
+
+            if (vehicleManager.updateElementByID(id, params.vehicle(), params.login())) {
+                if (params.isLaud()) params.responseSender().send("Элемент успешно обновлен");
+                return ReturnCode.OK;
+            } else {
+                if (params.isLaud()) params.responseSender().sendError("Объект не найден или нет прав");
+                return ReturnCode.FAILED;
+            }
+        } catch (NumberFormatException e) {
+            if (params.isLaud()) params.responseSender().sendError("Ошибка: введите корректный ID (число)");
             return ReturnCode.FAILED;
         }
-//        try {
-            long identifier = Long.parseLong(params.args().get(1));
-            if (vehicleManager.updateElementByID(identifier, params.vehicle())) params.responseSender().send("Элемент успешно обновлен");
-            return ReturnCode.OK;
-//        } catch (IllegalArgumentException e) {
-//            params.responseSender().send("Ошибка: неверный тип! Введите число");
-//            return ReturnCode.FAILED;
-//        }
     }
 
-    public String getDescription(){
+    @Override
+    public String getDescription() {
         return " обновить значение элемента коллекции, id которого равен заданному";
     }
 
@@ -37,5 +43,4 @@ public class UpdateElementID implements Command {
     public CommandType getType() {
         return this.type;
     }
-
 }

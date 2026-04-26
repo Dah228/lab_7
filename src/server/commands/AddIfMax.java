@@ -4,24 +4,27 @@ import common.CommandType;
 import common.ReturnCode;
 import server.collection.VehicleManager;
 
-public class AddIfMax implements Command{
-    VehicleManager vehicleAdder;
+public class AddIfMax implements Command {
+    private final VehicleManager vehicleAdder;
     private final CommandType type = CommandType.WITHMODEL;
 
-
-    public AddIfMax(VehicleManager vehicleComaperator){
-        this.vehicleAdder = vehicleComaperator;
+    public AddIfMax(VehicleManager vehicleComparator) {
+        this.vehicleAdder = vehicleComparator;
     }
 
-
     @Override
-    public ReturnCode execute(CommandParams params) throws IllegalArgumentException {
-        if (params.args().size() != 1){
+    public ReturnCode execute(CommandParams params) {
+        if (params.args().size() != 1) return ReturnCode.FAILED;
+
+        params.vehicle().setOwnerLogin(params.login());
+
+        if (vehicleAdder.addIfMax(params.vehicle())) {
+            if (params.isLaud()) params.responseSender().send("Элемент добавлен (максимальная дистанция)");
+            return ReturnCode.OK;
+        } else {
+            if (params.isLaud()) params.responseSender().send("Элемент не добавлен: дистанция не максимальная");
             return ReturnCode.FAILED;
         }
-            vehicleAdder.addIfMax(params.vehicle());
-            if (params.isLaud()) params.responseSender().send("У элемента максимальное значение пройденной дистанции. Добавлен.");
-            return ReturnCode.OK;
     }
 
     @Override
@@ -30,9 +33,7 @@ public class AddIfMax implements Command{
     }
 
     @Override
-    public CommandType getType(){
+    public CommandType getType() {
         return this.type;
     }
-
 }
-

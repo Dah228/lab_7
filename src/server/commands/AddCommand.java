@@ -13,15 +13,22 @@ public class AddCommand implements Command {
     }
 
     @Override
-    public ReturnCode execute(CommandParams params) throws IllegalArgumentException {
+    public ReturnCode execute(CommandParams params) {
+        // Устанавливаем владельца из авторизованного пользователя
+        params.vehicle().setOwnerLogin(params.login());
 
-            this.vehicleAdder.addElement(params.vehicle());
-
+        // addElement теперь возвращает boolean: true = успех БД + памяти
+        if (vehicleAdder.addElement(params.vehicle())) {
             if (params.isLaud()) {
                 params.responseSender().send("Транспортное средство успешно добавлено");
                 params.responseSender().send("ID: " + params.vehicle().getId());
             }
             return ReturnCode.OK;
+        }
+        if (params.isLaud()) {
+            params.responseSender().sendError("Не удалось добавить объект в базу данных");
+        }
+        return ReturnCode.FAILED;
     }
 
     @Override

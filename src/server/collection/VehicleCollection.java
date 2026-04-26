@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 
 public class VehicleCollection {
     private final CopyOnWriteArrayList<Vehicle> vehicles = new CopyOnWriteArrayList<>();
@@ -41,6 +42,12 @@ public class VehicleCollection {
     public void rmEl(Vehicle v) {
         vehicles.remove(v);
     }
+
+    public void removeIf(Predicate<Vehicle> predicate) {
+        vehicles.removeIf(predicate);
+    }
+
+
 
     public List<Long> getAllID() {
         List<Long> id = new ArrayList<>();

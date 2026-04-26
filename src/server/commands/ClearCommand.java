@@ -8,8 +8,6 @@ public class ClearCommand implements Command {
     private final VehicleManager manager;
     private final CommandType type = CommandType.NOARGS;
 
-
-
     public ClearCommand(VehicleManager manager) {
         this.manager = manager;
     }
@@ -17,11 +15,11 @@ public class ClearCommand implements Command {
     @Override
     public ReturnCode execute(CommandParams params) {
         if (params.args().size() != 1) return ReturnCode.FAILED;
-        manager.clearCollection();
-        if (params.isLaud()) params.responseSender().send("Коллекция очищена");
+        // Передаём логин: очистка только своих объектов
+        manager.clearCollection(params.login());
+        if (params.isLaud()) params.responseSender().send("Коллекция очищена (ваши объекты)");
         return ReturnCode.OK;
     }
-
 
     @Override
     public String getDescription() {
@@ -32,6 +30,4 @@ public class ClearCommand implements Command {
     public CommandType getType() {
         return this.type;
     }
-
-
 }
