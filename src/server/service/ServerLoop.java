@@ -1,13 +1,10 @@
 package server.service;
-
 import common.CommandRequest;
-
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 
 public class ServerLoop {
-
     private final ServerContext context;
     private final NetworkRequestHandler requestHandler;
     private volatile boolean running = true;
@@ -17,24 +14,27 @@ public class ServerLoop {
         this.requestHandler = requestHandler;
     }
 
-    public void stop() {
-        running = false;
-    }
+    public void stop() { running = false; }
 
     public void run() {
         ServerNetworkService network = context.getNetworkService();
-
         while (running) {
-
             List<SelectionKey> readyKeys = network.processEvents();
-
             for (SelectionKey key : readyKeys) {
                 CommandRequest request = (CommandRequest) key.attachment();
-                key.attach(null); // сбрасываем, чтобы не обработать повторно
+                if (request == null) continue;
+                key.attach(null);
+                SocketChannel channel = (SocketChannel) key.channel();
 
-                requestHandler.processRequest((SocketChannel) key.channel(), request);
+                // Многопоточная обработка запроса через ForkJoinPool
+                network.getProcessPool().submit(() -> {
+                    try {
+                        requestHandler.processRequest(channel, request);
+                    } catch (Exception e) {
+                        System.err.println("Ошибка обработки запроса: " + e.getMessage());
+                    }
+                });
             }
-
         }
     }
 }
