@@ -7,7 +7,7 @@ import server.database.VehicleDao;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class VehicleManager {
+public class VehicleManager implements IVehicleManager {
     private final VehicleCollection collection;
     private final VehicleDao dao;  // ← НОВОЕ
 

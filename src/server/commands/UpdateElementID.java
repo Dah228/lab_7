@@ -1,26 +1,18 @@
 package server.commands;
-
 import common.CommandType;
 import common.ReturnCode;
-import server.collection.VehicleManager;
+import server.collection.IVehicleManager;
 
 public class UpdateElementID implements Command {
-    private final VehicleManager vehicleManager;
+    private final IVehicleManager vehicleManager;
     private final CommandType type = CommandType.WITHARGSMODEL;
-
-    public UpdateElementID(VehicleManager vehicleManager) {
-        this.vehicleManager = vehicleManager;
-    }
-
-    @Override
-    public ReturnCode execute(CommandParams params) {
+    public UpdateElementID(IVehicleManager vehicleManager) { this.vehicleManager = vehicleManager; }
+    @Override public ReturnCode execute(CommandParams params) {
         if (params.args().size() != 2) return ReturnCode.FAILED;
         try {
             long id = Long.parseLong(params.args().get(1));
-            // Устанавливаем ID и владельца для обновляемого объекта
             params.vehicle().setId(id);
             params.vehicle().setOwnerLogin(params.login());
-
             if (vehicleManager.updateElementByID(id, params.vehicle(), params.login())) {
                 if (params.isLaud()) params.responseSender().send("Элемент успешно обновлен");
                 return ReturnCode.OK;
@@ -33,14 +25,6 @@ public class UpdateElementID implements Command {
             return ReturnCode.FAILED;
         }
     }
-
-    @Override
-    public String getDescription() {
-        return " обновить значение элемента коллекции, id которого равен заданному";
-    }
-
-    @Override
-    public CommandType getType() {
-        return this.type;
-    }
+    @Override public String getDescription() { return " обновить значение элемента коллекции, id которого равен заданному"; }
+    @Override public CommandType getType() { return this.type; }
 }
