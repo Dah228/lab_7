@@ -123,6 +123,11 @@ public class DataValidator {
         veh.setDistanceTravelled(readValidFloat("Введите пройденное расстояние (> 0): ", 0f, isLaud));
         veh.setType(readVehicleType("Введите тип (PLANE, HELICOPTER, BOAT, SHIP, HOVERBOARD) или пустую строку: ", isLaud));
         veh.setFuelType(readFuelType("Введите тип топлива (GASOLINE, KEROSENE, ELECTRICITY, DIESEL, NUCLEAR):", isLaud));
+        veh.setPrice(readValidDouble("Введите цену транспортного средства (> 0): ", isLaud));
         return veh;
+    }
+
+    public Double readValidDouble(String prompt, Boolean isLaud) {
+        return readValidatedInput(prompt, isLaud, Double::valueOf, "Ошибка: ожидалось число");
     }
 }

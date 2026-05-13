@@ -70,6 +70,28 @@ public class VehicleManagerProxy implements IVehicleManager {
         }
         return realManager.addIfMax(vehicle);
     }
+    @Override
+    public boolean buyVehicle(long id, String buyerLogin) {
+        return realManager.buyVehicle(id, buyerLogin);
+    }
+
+    @Override
+    public double getBalance(String login) {
+        return realManager.getBalance(login);
+    }
+    @Override
+    public boolean deposit(String login, double amount) {
+        return realManager.deposit(login, amount);
+    }
+    @Override
+    public boolean setPrice(long id, double price, String ownerLogin) {
+        if (!isOwner(id, ownerLogin)) {
+            System.err.println("PROXY: Попытка изменения цены чужого элемента. ID=" + id + ", user=" + ownerLogin);
+            return false;
+        }
+        return realManager.setPrice(id, price, ownerLogin);
+    }
+
 
     // Читающие методы делегируются напрямую без ограничений
     @Override public ArrayList<Vehicle> showCollection() { return realManager.showCollection(); }

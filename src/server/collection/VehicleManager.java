@@ -2,6 +2,7 @@ package server.collection;
 
 import common.Vehicle;
 import common.VehicleType;
+import server.database.UserDao;
 import server.database.VehicleDao;
 
 import java.util.*;
@@ -9,15 +10,15 @@ import java.util.stream.Collectors;
 
 public class VehicleManager implements IVehicleManager {
     private final VehicleCollection collection;
-    private final VehicleDao dao;  // ← НОВОЕ
+    private final VehicleDao dao;
+    private final UserDao userDao;
 
-    // Обновлённый конструктор
-    public VehicleManager(VehicleCollection collection, VehicleDao dao) {
+    public VehicleManager(VehicleCollection collection, VehicleDao dao, UserDao userDao) {
         this.collection = collection;
         this.dao = dao;
+        this.userDao = userDao;
     }
 
-    // === ЧТЕНИЕ: только из памяти ===
     public ArrayList<Vehicle> showCollection() {
         return collection.getVehicles();
     }
@@ -85,7 +86,7 @@ public class VehicleManager implements IVehicleManager {
                 .collect(Collectors.groupingBy(field.extractor(), Collectors.counting()));
     }
 
-    // === ЗАПИСЬ: сначала БД, потом память ===
+    //  запись: сначала БД, потом память
 
     public boolean addElement(Vehicle vehicle) {
         // 1. Сохраняем в БД (там генерируется ID через sequence)
@@ -97,8 +98,20 @@ public class VehicleManager implements IVehicleManager {
         return false;
     }
 
+    @Override
+    public boolean buyVehicle(long id, String buyerLogin) {
+        if (dao.buyVehicle(id, buyerLogin)) {
+            Vehicle v = collection.getVehicleByID(id);
+            if (v != null) {
+                v.setOwnerLogin(buyerLogin); // ← Синхронизация памяти для прокси
+            }
+            return true;
+        }
+        return false;
+    }
+
     public boolean addElementManually(Vehicle vehicle) {
-        // ← ТОЛЬКО для начальной загрузки из БД при старте сервера
+        // только для начальной загрузки из БД при старте сервера
         // Не вызывает dao.insert(), сразу добавляет в память
         collection.add(vehicle);
         return true;
@@ -129,7 +142,33 @@ public class VehicleManager implements IVehicleManager {
         Optional<Vehicle> max = collection.getVehicles().stream()
                 .max(Comparator.comparingDouble(Vehicle::getDistanceTravelled));
         if (max.isEmpty() || veh.getDistanceTravelled() > max.get().getDistanceTravelled()) {
-            return addElement(veh); // ← используем метод с БД
+            return addElement(veh); // используем метод с БД
+        }
+        return false;
+    }
+    @Override
+    public double getBalance(String login) {
+        return userDao.getBalance(login);
+    }
+
+    @Override
+    public boolean deposit(String login, double amount) {
+        if (amount <= 0) return false; // Защита от отрицательных/нулевых пополнений
+        return userDao.updateBalance(login, amount);
+    }
+
+    @Override
+    public boolean setPrice(long id, double price, String ownerLogin) {
+        if (price < 0) return false; // Валидация
+
+        // 1. Обновляем в БД (там уже идёт проверка owner_login)
+        if (userDao.updatePrice(id, price, ownerLogin)) {
+            // 2. Обновляем объект в памяти
+            Vehicle v = collection.getVehicleByID(id);
+            if (v != null) {
+                v.setPrice(price);
+            }
+            return true;
         }
         return false;
     }

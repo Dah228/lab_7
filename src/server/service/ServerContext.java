@@ -7,6 +7,7 @@ import server.collection.VehicleManagerProxy;
 import server.commands.CommandsList;
 import server.commands.Invoker;
 import server.database.AuthService;
+import server.database.UserDao;
 import server.database.VehicleDao;
 
 public class ServerContext {
@@ -17,16 +18,18 @@ public class ServerContext {
     private final String xmlFilePath;
     private final int port;
 
+
     public ServerContext(int port, String xmlFilePath) {
         this.port = port;
         this.xmlFilePath = xmlFilePath;
         AuthService authService = new AuthService();
         VehicleDao vehicleDao = new VehicleDao();
         VehicleCollection collection = new VehicleCollection();
+        UserDao userDao = new UserDao();
 
         this.invoker = new Invoker(authService);
 
-        IVehicleManager realManager = new VehicleManager(collection, vehicleDao);
+        IVehicleManager realManager = new VehicleManager(collection, vehicleDao, userDao);
         this.vehicleManager = new VehicleManagerProxy(realManager);
 
         this.commandsList = new CommandsList(vehicleManager, invoker);

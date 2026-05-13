@@ -28,6 +28,10 @@ public class CommandsList {
         register("add", new AddCommand(manager));
         register("add_if_max", new AddIfMax(manager));
         register("update", new UpdateElementID(manager));
+        register("buy", new BuyCommand(manager));
+        register("show_balance", new ShowBalanceCommand(manager));
+        register("deposit", new DepositCommand(manager));
+        register("set_price", new SetPriceCommand(manager));
     }
 
     private void register(String name, Command command) {

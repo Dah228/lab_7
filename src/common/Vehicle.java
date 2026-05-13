@@ -12,7 +12,9 @@ public class Vehicle implements Serializable {
     private float distanceTravelled;
     private VehicleType type;
     private FuelType fuelType;
-    private String ownerLogin; // ← НОВОЕ ПОЛЕ
+    private String ownerLogin;
+    private double price;
+
 
     // Конструктор без параметров (для сериализации и создания новых объектов)
     public Vehicle() {
@@ -41,7 +43,7 @@ public class Vehicle implements Serializable {
         this.coordinates.setCoord(x, y);
     }
 
-    // ← НОВЫЙ МЕТОД для установки объекта Coordinates (нужен для DAO)
+    // объекта Coordinates (нужен для DAO)
     public void setCoordinatesObject(Coordinates coordinates) {
         this.coordinates = coordinates;
     }
@@ -67,5 +69,7 @@ public class Vehicle implements Serializable {
     public void setType(VehicleType type) { this.type = type; }
     public void setDistanceTravelled(float distanceTravelled) { this.distanceTravelled = distanceTravelled; }
     public void setFuelType(FuelType fuel) { this.fuelType = fuel; }
-    public void setOwnerLogin(String ownerLogin) { this.ownerLogin = ownerLogin; } // ← НОВЫЙ СЕТТЕР
+    public void setOwnerLogin(String ownerLogin) { this.ownerLogin = ownerLogin; }
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
 }

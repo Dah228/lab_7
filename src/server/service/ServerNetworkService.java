@@ -31,7 +31,6 @@ public class ServerNetworkService {
     private final ForkJoinPool sendPool = new ForkJoinPool();
 
     public ForkJoinPool getProcessPool() { return processPool; }
-    public ForkJoinPool getSendPool() { return sendPool; }
 
     public static class ClientData {
         public ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
@@ -204,8 +203,8 @@ public class ServerNetworkService {
                     while (client.currentWriteBuffer != null && client.currentWriteBuffer.hasRemaining()) {
                         if (clientChannel.write(client.currentWriteBuffer) == -1) { removeClient(clientChannel); return; }
                     }
-                    if (client.currentWriteBuffer != null && !client.currentWriteBuffer.hasRemaining()) client.currentWriteBuffer = null;
-                    if (client.writeQueue.isEmpty() && client.currentWriteBuffer == null && key.isValid())
+                    if (client.currentWriteBuffer != null) client.currentWriteBuffer = null;
+                    if (client.writeQueue.isEmpty() && key.isValid())
                         key.interestOps(SelectionKey.OP_READ);
                 }
             } catch (Exception e) { System.err.println("Ошибка отправки: " + e.getMessage()); }

@@ -22,6 +22,7 @@ public class VehicleFormatter {
         sender.send("Distance travelled: " + v.getDistanceTravelled());
         sender.send("Type: " + v.getType());
         sender.send("Fuel type: " + v.getFuelType());
+        sender.send("Price: " + v.getPrice());
         sender.send("------------------------");
     }
 

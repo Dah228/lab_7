@@ -14,6 +14,10 @@ public interface IVehicleManager {
     boolean rmByID(long id, String ownerLogin);
     void clearCollection(String ownerLogin);
     boolean addIfMax(Vehicle vehicle);
+    boolean buyVehicle(long id, String buyerLogin);
+    double getBalance(String login);
+    boolean deposit(String login, double amount);
+    boolean setPrice(long id, double price, String ownerLogin);
 
     ArrayList<Vehicle> showCollection();
     HashMap<String, String> getInfo();
@@ -23,4 +27,5 @@ public interface IVehicleManager {
     ArrayList<Vehicle> sortByIDDescending();
     ArrayList<Vehicle> shuffle();
     Map<Comparable<?>, Long> groupByParam(List<String> args);
+
 }

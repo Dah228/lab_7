@@ -14,7 +14,6 @@ public class ServerLoop {
         this.requestHandler = requestHandler;
     }
 
-    public void stop() { running = false; }
 
     public void run() {
         ServerNetworkService network = context.getNetworkService();
