@@ -175,7 +175,6 @@ public class ServerNetworkService {
     }
 
     // Чтение делегируется в FixedThreadPool
-// Найди метод handleRead и замени на:
 
     private void handleRead(SelectionKey key) {
         SocketChannel clientChannel = (SocketChannel) key.channel();
